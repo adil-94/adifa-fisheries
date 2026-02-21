@@ -18,15 +18,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    // Check for session on mount
+    const checkSession = async () => {
+      try {
+        console.log('Checking for existing session...');
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          return;
+        }
+        
+        if (data?.session) {
+          console.log('Found existing session for:', data.session.user.email);
+          setUser(data.session.user);
+        } else {
+          console.log('No existing session found');
+          setUser(null);
+        }
+      } catch (err) {
+        console.error('Unexpected error checking session:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    checkSession();
 
+    // Subscribe to auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed in context:', event, session?.user?.email);
+      
+      if (event === 'SIGNED_IN' && session) {
+        console.log('User signed in to context:', session.user.email);
+        setUser(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        console.log('User signed out from context');
+        setUser(null);
+      }
+      
       setLoading(false);
     });
 
