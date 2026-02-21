@@ -21,20 +21,41 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: 18
+          registry-url: https://registry.npmjs.org/
 
+      # Clean install dependencies
       - name: Install dependencies
-        run: npm install --no-audit
+        run: |
+          rm -rf node_modules
+          npm cache clean --force
+          npm install
 
+      # Explicitly install Vite
+      - name: Install Vite
+        run: npm install --save-dev vite@latest @vitejs/plugin-react
+
+      # Debug info
+      - name: Debug environment
+        run: |
+          echo "Node version: $(node -v)"
+          echo "NPM version: $(npm -v)"
+          ls -la
+          ls -la node_modules/@vitejs || echo "@vitejs not found"
+          ls -la node_modules/vite || echo "vite not found"
+
+      # Build with explicit path to vite
       - name: Build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-        run: npx vite build
+          NODE_ENV: production
+        run: |
+          echo "Building with Vite..."
+          ./node_modules/.bin/vite build
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
