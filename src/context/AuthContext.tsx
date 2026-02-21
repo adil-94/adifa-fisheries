@@ -18,26 +18,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // Check for session on mount
+    // Simple session check without extra logging
     const checkSession = async () => {
       try {
-        console.log('Checking for existing session...');
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Error getting session:', error);
-          return;
-        }
-        
-        if (data?.session) {
-          console.log('Found existing session for:', data.session.user.email);
-          setUser(data.session.user);
-        } else {
-          console.log('No existing session found');
-          setUser(null);
-        }
+        const { data } = await supabase.auth.getSession();
+        setUser(data?.session?.user || null);
       } catch (err) {
-        console.error('Unexpected error checking session:', err);
+        console.error('Session check error:', err);
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -45,20 +33,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     checkSession();
 
-    // Subscribe to auth changes
+    // Simple auth state subscription
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state changed in context:', event, session?.user?.email);
-      
-      if (event === 'SIGNED_IN' && session) {
-        console.log('User signed in to context:', session.user.email);
-        setUser(session.user);
-      } else if (event === 'SIGNED_OUT') {
-        console.log('User signed out from context');
-        setUser(null);
-      }
-      
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
       setLoading(false);
     });
 
