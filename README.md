@@ -1,4 +1,4 @@
-# 🐟 Adifa Fisheries - Expense Tracking System
+# 🐟 Adifa Fisheries - Expense Tracking System(100% working at this point)
 
 A secure, production-ready expense tracking application for two business partners with strict ownership controls.
 
