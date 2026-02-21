@@ -14,8 +14,9 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     storage: localStorage,
-    storageKey: 'adifa-fisheries-auth-token',
-    detectSessionInUrl: true
+    storageKey: 'adifa-fisheries-auth',
+    detectSessionInUrl: true,
+    flowType: 'pkce'
   }
 });
 
@@ -24,39 +25,46 @@ const hasAuthTokens = window.location.hash && window.location.hash.includes('acc
 
 // Handle auth redirects for GitHub Pages
 const isGitHubPages = window.location.hostname.includes('github.io');
-const isRootDomain = isGitHubPages && !window.location.pathname.includes('/adifa-fisheries/');
 
-// IMPORTANT: Only redirect once from root domain to app with auth tokens
-if (isRootDomain && hasAuthTokens) {
-  // Extract the hash portion with the auth tokens
-  const hashPart = window.location.hash;
+// Process auth tokens if present
+if (hasAuthTokens) {
+  console.log('Auth tokens detected in URL');
   
-  // Redirect to the correct URL with the auth tokens
-  window.location.href = 'https://adil-94.github.io/adifa-fisheries/' + hashPart;
-}
-
-// Process the auth tokens if they exist and we're on the correct path
-if (hasAuthTokens && !isRootDomain) {
   // Let Supabase handle the auth tokens
   supabase.auth.getSession().then(({ data, error }) => {
     if (data?.session) {
-      // Manually store the session in localStorage for extra persistence
+      console.log('Session established successfully');
+      
+      // Store session in localStorage for persistence
       try {
         localStorage.setItem('adifa-fisheries-auth-manual', JSON.stringify({
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token,
-          user: data.session.user
+          user: data.session.user,
+          expires_at: data.session.expires_at
         }));
       } catch (e) {
         console.error('Error storing session in localStorage:', e);
       }
       
-      // Clear the hash to prevent infinite processing
+      // Remove the hash to prevent token exposure and repeated processing
       if (window.history && window.history.replaceState) {
-        window.history.replaceState(null, document.title, window.location.pathname);
+        // Keep the path but remove the hash
+        window.history.replaceState(
+          null, 
+          document.title, 
+          window.location.pathname
+        );
+      }
+      
+      // Redirect to the main app page if we're not already there
+      if (window.location.pathname === '/' || window.location.pathname === '/login') {
+        window.location.href = '#/';
       }
     } else if (error) {
       console.error('Failed to establish session:', error);
+      // Redirect to login page on error
+      window.location.href = '#/login';
     }
   });
 }
@@ -65,26 +73,46 @@ if (hasAuthTokens && !isRootDomain) {
 try {
   const storedSession = localStorage.getItem('adifa-fisheries-auth-manual');
   if (storedSession && !hasAuthTokens) {
+    console.log('Found stored session, attempting to restore');
     const parsedSession = JSON.parse(storedSession);
-    if (parsedSession.access_token && parsedSession.refresh_token) {
+    
+    // Check if session is expired
+    const now = Math.floor(Date.now() / 1000);
+    if (parsedSession.expires_at && parsedSession.expires_at < now) {
+      console.log('Stored session is expired, removing');
+      localStorage.removeItem('adifa-fisheries-auth-manual');
+    } else if (parsedSession.access_token && parsedSession.refresh_token) {
+      // Restore the session
       supabase.auth.setSession({
         access_token: parsedSession.access_token,
         refresh_token: parsedSession.refresh_token
-      }).catch(err => {
-        console.error('Error restoring session:', err);
+      }).then(({ data, error }) => {
+        if (error) {
+          console.error('Error restoring session:', error);
+          localStorage.removeItem('adifa-fisheries-auth-manual');
+        } else if (data?.session) {
+          console.log('Session restored successfully');
+        }
       });
     }
   }
 } catch (e) {
   console.error('Error parsing stored session:', e);
+  localStorage.removeItem('adifa-fisheries-auth-manual');
 }
 
-// Custom sign-in function to use the correct redirect URL
+// Custom sign-in function with proper redirect URL
 export async function signInWithEmail(email: string) {
+  const redirectUrl = isGitHubPages
+    ? 'https://adil-94.github.io/adifa-fisheries/'
+    : window.location.origin;
+    
+  console.log('Signing in with redirect URL:', redirectUrl);
+  
   return supabase.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: 'https://adil-94.github.io/adifa-fisheries/',
+      emailRedirectTo: redirectUrl,
     },
   });
 }
