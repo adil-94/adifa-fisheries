@@ -21,18 +21,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+
+      - name: Fix npm version
+        run: npm install -g npm@10.8.2
 
       - name: Install
-        run: |
-          npm cache clean --force
-          npm ci
-          
-      - name: Debug versions
-        run: |
-          node -v
-          npm -v
-          ls node_modules/.bin | grep vite || true
+        run: npm ci --no-audit --no-fund
 
       - name: Build
         run: npm run build
