@@ -9,27 +9,32 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 // Create Supabase client with appropriate auth settings
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    storageKey: 'adifa-fisheries-auth',
-    storage: window.localStorage,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-  },
-});
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+
+// Check if we're on the authentication callback page with tokens
+const hasAuthTokens = window.location.hash && window.location.hash.includes('access_token=');
 
 // Handle auth redirects for GitHub Pages
 const isGitHubPages = window.location.hostname.includes('github.io');
-const currentUrl = window.location.href;
+const isRootDomain = isGitHubPages && !window.location.pathname.includes('/adifa-fisheries/');
 
-// Check if we have an access token in the URL but are at the wrong path
-if (isGitHubPages && currentUrl.includes('access_token=') && !currentUrl.includes('/adifa-fisheries/')) {
+// If we're at the root domain with auth tokens, redirect to the correct path
+if (isRootDomain && hasAuthTokens) {
   // Extract the hash portion with the auth tokens
   const hashPart = window.location.hash;
   
   // Redirect to the correct URL with the auth tokens
   window.location.href = 'https://adil-94.github.io/adifa-fisheries/' + hashPart;
+}
+
+// Process the auth tokens if they exist
+if (hasAuthTokens) {
+  // Let Supabase handle the auth tokens
+  supabase.auth.getSession().then(({ data }) => {
+    if (data?.session) {
+      console.log('User is authenticated');
+    }
+  });
 }
 
 // Listen for auth state changes
@@ -43,3 +48,13 @@ supabase.auth.onAuthStateChange((event) => {
     }
   }
 });
+
+// Custom sign-in function to use the correct redirect URL
+export async function signInWithEmail(email: string) {
+  return supabase.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: 'https://adil-94.github.io/adifa-fisheries/',
+    },
+  });
+}

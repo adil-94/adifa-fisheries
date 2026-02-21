@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Redirecting to Adifa Fisheries</title>
+  <script>
+    // Handle authentication redirects
+    window.onload = function() {
+      // Check if we have an access token in the URL hash
+      if (window.location.hash && window.location.hash.includes('access_token=')) {
+        // Redirect to the app with the auth tokens
+        window.location.href = '/adifa-fisheries/' + window.location.hash;
+      } else {
+        // Otherwise redirect to the main app
+        window.location.href = '/adifa-fisheries/';
+      }
+    };
+  </script>
+</head>
+<body>
+  <h1>Redirecting to Adifa Fisheries...</h1>
+  <p>If you are not redirected automatically, <a href="/adifa-fisheries/">click here</a>.</p>
+</body>
+</html>

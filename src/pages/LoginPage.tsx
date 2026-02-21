@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { signInWithEmail } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import { PARTNERS } from '../types';
 
@@ -10,12 +10,8 @@ export function LoginPage() {
   const handleMagicLink = async (email: string, name: string) => {
     setLoadingUser(name);
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: window.location.origin,
-        },
-      });
+      // Use our custom sign-in function that handles GitHub Pages redirects
+      const { error } = await signInWithEmail(email);
 
       if (error) throw error;
 
