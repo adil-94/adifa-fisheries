@@ -20,13 +20,19 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install
         run: |
           npm cache clean --force
           npm ci
+          
+      - name: Debug versions
+        run: |
+          node -v
+          npm -v
+          ls node_modules/.bin | grep vite || true
 
       - name: Build
         run: npm run build
