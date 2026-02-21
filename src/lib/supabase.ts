@@ -23,11 +23,15 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 // Check if we're on the authentication callback page with tokens
 const hasAuthTokens = window.location.hash && window.location.hash.includes('access_token=');
 
-// Handle auth redirects for GitHub Pages
+// Check if we're on GitHub Pages
 const isGitHubPages = window.location.hostname.includes('github.io');
 
 // Process auth tokens if present
 if (hasAuthTokens) {
+  // Log whether we're on GitHub Pages or not
+  if (isGitHubPages) {
+    console.log('Processing auth tokens on GitHub Pages');
+  }
   console.log('Auth tokens detected in URL');
   
   // Let Supabase handle the auth tokens
@@ -103,9 +107,8 @@ try {
 
 // Custom sign-in function with proper redirect URL
 export async function signInWithEmail(email: string) {
-  const redirectUrl = isGitHubPages
-    ? 'https://adil-94.github.io/adifa-fisheries/'
-    : window.location.origin;
+  // Always use the exact URL configured in Supabase for GitHub Pages
+  const redirectUrl = 'https://adil-94.github.io/adifa-fisheries/';
     
   console.log('Signing in with redirect URL:', redirectUrl);
   
